@@ -1,49 +1,91 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { LoginButton } from './auth';
 import type { GoogleUser } from './auth';
-import { FolderPicker, FileList } from './drive';
-import type { DriveFolder, DriveFile } from './drive';
-import { AudioPlayer } from './player';
+import { FolderTree, MainPanel, listFolderContents, listRootFolderContents, listMp3Files } from './drive';
+import type { DriveFile, DriveFolder } from './drive';
+import { AudioPlayer, TrackInfoPanel } from './player';
 import './App.css';
 
 function App() {
   const [user, setUser] = useState<GoogleUser | null>(null);
-  const [selectedFolder, setSelectedFolder] = useState<DriveFolder | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [folderName, setFolderName] = useState('');
+  const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [files, setFiles] = useState<DriveFile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [currentFileIndex, setCurrentFileIndex] = useState<number | null>(null);
+  const [playerFiles, setPlayerFiles] = useState<DriveFile[]>([]);
 
   const handleAuthChange = (newUser: GoogleUser | null) => {
     setUser(newUser);
     if (!newUser) {
-      setSelectedFolder(null);
+      setSelectedFolderId(null);
+      setFolderName('');
+      setFolders([]);
       setFiles([]);
       setCurrentFileIndex(null);
+      setPlayerFiles([]);
     }
   };
 
-  const handleFolderSelected = (folder: DriveFolder) => {
-    setSelectedFolder(folder);
-    setFiles([]);
-    setCurrentFileIndex(null);
-    console.log('Pasta selecionada:', folder);
-  };
+  const loadFolderContent = useCallback(async (folderId: string, name: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSelectedFolderId(folderId);
+      setFolderName(name);
 
-  const handleFilesLoaded = (loadedFiles: DriveFile[]) => {
-    setFiles(loadedFiles);
-    setCurrentFileIndex(null);
-  };
+      const content = folderId === '__drive_root__'
+        ? await listRootFolderContents()
+        : await listFolderContents(folderId);
+      setFolders(content.folders);
+      setFiles(content.files);
+    } catch (err) {
+      setError('Erro ao carregar conteúdo da pasta');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  const handleFileSelected = (file: DriveFile) => {
-    const index = files.findIndex(f => f.id === file.id);
+  const handleFolderSelect = useCallback((folderId: string, folderName: string) => {
+    loadFolderContent(folderId, folderName);
+  }, [loadFolderContent]);
+
+  const handlePlayFolder = useCallback(async (folderId: string, _folderName: string) => {
+    try {
+      const effectiveId = folderId === '__drive_root__' ? 'root' : folderId;
+      const folderFiles = await listMp3Files(effectiveId);
+      if (folderFiles.length > 0) {
+        setPlayerFiles(folderFiles);
+        setCurrentFileIndex(0);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar músicas da pasta:', err);
+    }
+  }, []);
+
+  const handleFileSelected = useCallback((file: DriveFile, allFiles: DriveFile[]) => {
+    const index = allFiles.findIndex(f => f.id === file.id);
+    setPlayerFiles(allFiles);
     setCurrentFileIndex(index >= 0 ? index : 0);
-    console.log('Arquivo selecionado:', file);
-  };
+  }, []);
+
+  const handlePlayAll = useCallback((filesToPlay: DriveFile[]) => {
+    if (filesToPlay.length > 0) {
+      setPlayerFiles(filesToPlay);
+      setCurrentFileIndex(0);
+    }
+  }, []);
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>DriveTune</h1>
-        <p>Player de música para Google Drive</p>
+        <div className="user-info">
+          {user && <LoginButton onAuthChange={handleAuthChange} />}
+        </div>
       </header>
 
       <main className="app-main">
@@ -55,28 +97,39 @@ function App() {
           </section>
         ) : (
           <section className="logged-section">
-            <div className="user-info">
-              <LoginButton onAuthChange={handleAuthChange} />
+            <div className="split-view">
+              <div className="left-panel">
+                <FolderTree
+                  selectedFolderId={selectedFolderId}
+                  onFolderSelect={handleFolderSelect}
+                  onPlayFolder={handlePlayFolder}
+                />
+              </div>
+
+              <div className="right-panel">
+                <MainPanel
+                  folders={folders}
+                  files={files}
+                  folderName={folderName}
+                  isLoading={isLoading}
+                  error={error}
+                  onFolderClick={handleFolderSelect}
+                  onPlayFolder={handlePlayFolder}
+                  onFileSelected={handleFileSelected}
+                  onPlayAll={handlePlayAll}
+                />
+              </div>
             </div>
 
-            {!selectedFolder ? (
-              <FolderPicker onFolderSelected={handleFolderSelected} />
-            ) : (
-              <div className="folder-selected">
-                <h3>Pasta: {selectedFolder.name}</h3>
-                <FileList
-                  folderId={selectedFolder.id}
-                  onFileSelected={handleFileSelected}
-                  onFilesLoaded={handleFilesLoaded}
-                />
-                {currentFileIndex !== null && files.length > 0 && (
-                  <div className="player-section">
-                    <AudioPlayer
-                      files={files}
-                      initialIndex={currentFileIndex}
-                    />
-                  </div>
-                )}
+            {currentFileIndex !== null && playerFiles.length > 0 && (
+              <div className="player-section">
+                <div className="player-layout">
+                  <TrackInfoPanel file={playerFiles[currentFileIndex]} />
+                  <AudioPlayer
+                    files={playerFiles}
+                    initialIndex={currentFileIndex}
+                  />
+                </div>
               </div>
             )}
           </section>

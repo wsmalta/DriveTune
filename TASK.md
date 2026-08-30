@@ -267,7 +267,7 @@ Preparar autenticação Google para uso na aplicação.
 
 ## T010 — Login Google completo
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -285,7 +285,7 @@ Fluxo completo de autenticação do usuário.
 
 ## T011 — Implementar logout
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -303,7 +303,7 @@ Permitir encerramento seguro da sessão.
 
 ## T020 — Solicitar acesso mínimo ao Drive
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -318,7 +318,7 @@ Configurar os escopos necessários para acessar a biblioteca musical.
 
 ## T021 — Selecionar pasta musical
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -335,7 +335,7 @@ Permitir que o usuário escolha a pasta onde estão suas músicas.
 
 ## T022 — Listar arquivos MP3
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -354,7 +354,7 @@ Localizar os arquivos MP3 dentro da pasta escolhida.
 
 ## T030 — Criar modelo de faixa
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -377,7 +377,7 @@ duration
 
 ## T031 — Exibir biblioteca
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -394,7 +394,7 @@ Apresentar as músicas encontradas.
 
 ## T032 — Navegação por artista
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -410,7 +410,7 @@ Permitir visualizar músicas agrupadas por artista.
 
 ## T033 — Navegação por álbum
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -426,7 +426,7 @@ Permitir visualizar músicas agrupadas por álbum.
 
 ## T034 — Busca
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -448,7 +448,7 @@ A busca deve funcionar sem exigir que o usuário percorra manualmente a bibliote
 
 ## T040 — Criar player básico
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -466,7 +466,7 @@ Implementar reprodução de uma música.
 
 ## T041 — Player persistente
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -481,7 +481,7 @@ Manter o player disponível durante a navegação.
 
 ## T042 — Próxima e anterior
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -497,7 +497,7 @@ Implementar navegação entre músicas da fila.
 
 ## T043 — Seek
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -513,7 +513,7 @@ Permitir avançar e retroceder na música.
 
 ## T044 — Volume
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -529,7 +529,7 @@ Implementar controle de volume.
 
 ## T045 — Fila de reprodução
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -548,7 +548,7 @@ Criar e controlar a fila de reprodução.
 
 ## T046 — Aleatório
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -564,7 +564,7 @@ Implementar reprodução aleatória.
 
 ## T047 — Repetição
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -625,7 +625,7 @@ Validar a reprodução com:
 
 ## T060 — Criar playlist
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -641,7 +641,7 @@ Permitir criar playlists.
 
 ## T061 — Adicionar música à playlist
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -657,7 +657,7 @@ Permitir adicionar músicas a uma playlist.
 
 ## T062 — Remover música da playlist
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -672,7 +672,7 @@ Permitir remover músicas de uma playlist.
 
 ## T063 — Listar playlists
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -690,7 +690,7 @@ Apresentar as playlists do usuário.
 
 ## T070 — Favoritar música
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -706,7 +706,7 @@ Permitir marcar músicas como favoritas.
 
 ## T071 — Listar favoritas
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 

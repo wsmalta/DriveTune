@@ -16,6 +16,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [currentFileIndex, setCurrentFileIndex] = useState<number | null>(null);
   const [playerFiles, setPlayerFiles] = useState<DriveFile[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleAuthChange = (newUser: GoogleUser | null) => {
     setUser(newUser);
@@ -51,6 +52,7 @@ function App() {
 
   const handleFolderSelect = useCallback((folderId: string, folderName: string) => {
     loadFolderContent(folderId, folderName);
+    setSidebarOpen(false);
   }, [loadFolderContent]);
 
   const handlePlayFolder = useCallback(async (folderId: string, _folderName: string) => {
@@ -64,6 +66,7 @@ function App() {
     } catch (err) {
       console.error('Erro ao carregar músicas da pasta:', err);
     }
+    setSidebarOpen(false);
   }, []);
 
   const handleFileSelected = useCallback((file: DriveFile, allFiles: DriveFile[]) => {
@@ -82,7 +85,18 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>DriveTune</h1>
+        <div className="header-left">
+          {user && (
+            <button
+              className="sidebar-toggle"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label="Alternar painel de pastas"
+            >
+              {sidebarOpen ? '✕' : '☰'}
+            </button>
+          )}
+          <h1>DriveTune</h1>
+        </div>
         <div className="user-info">
           {user && <LoginButton onAuthChange={handleAuthChange} />}
         </div>
@@ -97,7 +111,13 @@ function App() {
           </section>
         ) : (
           <section className="logged-section">
-            <div className="split-view">
+            <div className={`split-view ${sidebarOpen ? 'sidebar-open' : ''}`}>
+              {user && (
+                <div
+                  className="sidebar-overlay"
+                  onClick={() => setSidebarOpen(false)}
+                />
+              )}
               <div className="left-panel">
                 <FolderTree
                   selectedFolderId={selectedFolderId}

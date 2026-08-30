@@ -51,7 +51,7 @@ export function initializeGoogleAuth(callback: (user: GoogleUser | null) => void
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   
   if (!clientId) {
-    console.error('VITE_GOOGLE_CLIENT_ID não configurado');
+    console.error('GOOGLE_CLIENT_ID não configurado');
     return;
   }
 

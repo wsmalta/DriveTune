@@ -23,6 +23,20 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
   const [shuffle, setShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('none');
   const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
+  const prevFilesRef = useRef(files);
+
+  useEffect(() => {
+    if (prevFilesRef.current !== files) {
+      prevFilesRef.current = files;
+      if (files.length > 0) {
+        const safeIndex = initialIndex != null && initialIndex < files.length ? initialIndex : 0;
+        setCurrentIndex(safeIndex);
+        setCurrentTime(0);
+        setDuration(0);
+        setIsPlaying(false);
+      }
+    }
+  }, [files, initialIndex]);
 
   const currentFile = files[currentIndex];
 
@@ -67,13 +81,13 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
       const blob = await response.blob();
       const audioUrl = URL.createObjectURL(blob);
       
-      // Limpar URL anterior
-      if (audioRef.current.src) {
-        URL.revokeObjectURL(audioRef.current.src);
-      }
-      
+      const oldSrc = audioRef.current.src;
       audioRef.current.src = audioUrl;
       audioRef.current.play();
+
+      if (oldSrc) {
+        URL.revokeObjectURL(oldSrc);
+      }
     } catch (err) {
       setError('Erro ao carregar música');
       console.error(err);
@@ -135,6 +149,7 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
 
   // Carregar nova música quando currentIndex mudar
   useEffect(() => {
+    setError(null);
     if (currentFile) {
       loadAndPlay(currentFile);
       
@@ -225,14 +240,6 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  if (error) {
-    return (
-      <div className="audio-player error">
-        <p>{error}</p>
-      </div>
-    );
-  }
-
   if (!currentFile) {
     return (
       <div className="audio-player">
@@ -241,8 +248,24 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
     );
   }
 
+  const handleRetry = () => {
+    setError(null);
+    if (currentFile) loadAndPlay(currentFile);
+  };
+
   return (
     <div className="audio-player">
+      {error && (
+        <div className="player-error">
+          <span>{error}</span>
+          <button className="player-retry-btn" onClick={handleRetry} title="Tentar novamente">
+            ↻
+          </button>
+          <button className="player-dismiss-btn" onClick={() => setError(null)} title="Dispensar">
+            ✕
+          </button>
+        </div>
+      )}
       <div className="player-info">
         <p className="track-name">{currentFile.name}</p>
         <p className="track-progress">

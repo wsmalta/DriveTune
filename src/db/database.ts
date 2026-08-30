@@ -8,7 +8,10 @@ export interface Track {
   album?: string;
   trackNumber?: number;
   genre?: string;
+  year?: number;
+  bitrate?: number;
   duration?: number;
+  coverUrl?: string;
   folderId: string;
   updatedAt: Date;
 }
@@ -73,6 +76,12 @@ class DriveTuneDB extends Dexie {
       playlistItems: '++id, playlistId, trackId',
       favorites: '++id, trackId',
       playbackState: '++id',
+    });
+    this.version(2).stores({
+      tracks: '++id, driveFileId, folderId, artist, album, genre, year',
+    });
+    this.version(3).stores({
+      tracks: '++id, driveFileId, folderId, artist, album, genre, year',
     });
   }
 }

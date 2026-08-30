@@ -34,16 +34,12 @@ export function Search({ folderId, files, onTrackSelect }: SearchProps) {
       setSearching(true);
       const searchTerm = value.toLowerCase();
       
-      // Buscar tracks do banco
-      const tracks = await db.tracks
-        .where('folderId')
-        .equals(folderId)
-        .toArray();
+      // Buscar tracks do banco (global, não por pasta)
+      const tracks = await db.tracks.toArray();
       
-      // Se não tem tracks no banco, extrair dos arquivos
       let tracksToSearch = tracks;
       
-      if (tracks.length === 0 && files.length > 0) {
+      if (tracksToSearch.length === 0 && files.length > 0) {
         // Criar tracks temporárias dos arquivos
         tracksToSearch = files.map(file => {
           const metadata = extractMetadata(file.name);
@@ -68,7 +64,7 @@ export function Search({ folderId, files, onTrackSelect }: SearchProps) {
         );
       });
       
-      setResults(filtered.slice(0, 20)); // Limitar a 20 resultados
+      setResults(filtered.slice(0, 50));
     } catch (err) {
       console.error('Erro na busca:', err);
     } finally {

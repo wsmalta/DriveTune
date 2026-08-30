@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseBlob } from 'music-metadata';
 import { getAccessToken } from '../auth';
+import { db } from '../db';
 import type { DriveFile } from '../drive';
 import { extractMetadata } from '../drive';
+import { TrackEditModal } from '../library/TrackEditModal';
+import type { Track } from '../db';
 
 interface TrackInfo {
   title?: string;
@@ -21,11 +24,13 @@ interface TrackInfoPanelProps {
   file: DriveFile | null;
 }
 
-const metadataCache = new Map<string, TrackInfo>();
+const memoryCache = new Map<string, TrackInfo>();
 
 export function TrackInfoPanel({ file }: TrackInfoPanelProps) {
   const [info, setInfo] = useState<TrackInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dbTrack, setDbTrack] = useState<Track | null>(null);
+  const [editing, setEditing] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -34,9 +39,9 @@ export function TrackInfoPanel({ file }: TrackInfoPanelProps) {
       return;
     }
 
-    const cached = metadataCache.get(file.id);
-    if (cached) {
-      setInfo(cached);
+    const memCached = memoryCache.get(file.id);
+    if (memCached) {
+      setInfo(memCached);
       return;
     }
 
@@ -47,6 +52,28 @@ export function TrackInfoPanel({ file }: TrackInfoPanelProps) {
     const fetchMetadata = async () => {
       try {
         setLoading(true);
+
+        const dbTrack = await db.tracks.where('driveFileId').equals(file.id).first();
+        setDbTrack(dbTrack || null);
+        if (dbTrack?.coverUrl) {
+          const cached: TrackInfo = {
+            title: dbTrack.name,
+            artist: dbTrack.artist,
+            album: dbTrack.album,
+            genre: dbTrack.genre,
+            year: dbTrack.year,
+            track: dbTrack.trackNumber ? { no: dbTrack.trackNumber, of: null } : undefined,
+            bitrate: dbTrack.bitrate,
+            duration: dbTrack.duration,
+            picture: dbTrack.coverUrl,
+            fileName: file.name,
+          };
+          memoryCache.set(file.id, cached);
+          setInfo(cached);
+          setLoading(false);
+          return;
+        }
+
         const token = getAccessToken();
         if (!token) return;
 
@@ -90,8 +117,31 @@ export function TrackInfoPanel({ file }: TrackInfoPanelProps) {
           fileName: file.name,
         };
 
-        metadataCache.set(file.id, trackInfo);
+        memoryCache.set(file.id, trackInfo);
         setInfo(trackInfo);
+
+        if (dbTrack?.id && pictureUrl) {
+          await db.tracks.update(dbTrack.id, {
+            coverUrl: pictureUrl,
+            name: trackInfo.title || dbTrack.name,
+            artist: trackInfo.artist || dbTrack.artist,
+            album: trackInfo.album || dbTrack.album,
+            genre: trackInfo.genre || dbTrack.genre,
+            year: trackInfo.year || dbTrack.year,
+            bitrate: trackInfo.bitrate || dbTrack.bitrate,
+            duration: trackInfo.duration != null ? Math.round(trackInfo.duration) : dbTrack.duration,
+          });
+        } else if (dbTrack?.id && !pictureUrl) {
+          await db.tracks.update(dbTrack.id, {
+            name: trackInfo.title || dbTrack.name,
+            artist: trackInfo.artist || dbTrack.artist,
+            album: trackInfo.album || dbTrack.album,
+            genre: trackInfo.genre || dbTrack.genre,
+            year: trackInfo.year || dbTrack.year,
+            bitrate: trackInfo.bitrate || dbTrack.bitrate,
+            duration: trackInfo.duration != null ? Math.round(trackInfo.duration) : dbTrack.duration,
+          });
+        }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') return;
 
@@ -139,6 +189,14 @@ export function TrackInfoPanel({ file }: TrackInfoPanelProps) {
     return `${min}:${sec.toString().padStart(2, '0')}`;
   };
 
+  const handleSaveTrack = async (updates: Partial<Track>) => {
+    if (!dbTrack?.id) return;
+    await db.tracks.update(dbTrack.id, updates);
+    setDbTrack({ ...dbTrack, ...updates });
+    memoryCache.delete(file.id);
+    setEditing(false);
+  };
+
   return (
     <div className="track-info-panel">
       <div className="track-info-content">
@@ -149,9 +207,16 @@ export function TrackInfoPanel({ file }: TrackInfoPanelProps) {
         )}
 
         <div className="track-info-details">
-          <div className="track-info-row">
-            <span className="track-info-label">Título</span>
-            <span className="track-info-value">{info.title || '—'}</span>
+          <div className="track-info-header">
+            <span className="track-info-title">{info.title || info.fileName}</span>
+            {dbTrack?.id && (
+              <button className="track-info-edit-btn" title="Editar detalhes" onClick={() => setEditing(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M15 3l6 6-12 12H3v-6L15 3z" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="track-info-row">
             <span className="track-info-label">Artista</span>
@@ -191,6 +256,14 @@ export function TrackInfoPanel({ file }: TrackInfoPanelProps) {
           </div>
         </div>
       </div>
+
+      {editing && dbTrack && (
+        <TrackEditModal
+          track={dbTrack}
+          onSave={handleSaveTrack}
+          onClose={() => setEditing(false)}
+        />
+      )}
     </div>
   );
 }

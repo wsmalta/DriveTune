@@ -444,6 +444,25 @@ A busca deve funcionar sem exigir que o usuário percorra manualmente a bibliote
 
 ---
 
+## T035 — Navegação por abas
+
+Status: `[x]`
+
+### Objetivo
+
+Adicionar abas de navegação para alternar entre visualização por pastas, artistas, álbuns, músicas e busca.
+
+### Critérios de aceitação
+
+* abas: Pastas, Artistas, Álbuns, Músicas, Busca;
+* cada aba mostra conteúdo correspondente do IndexedDB;
+* indexação automática ao navegar em pastas;
+* busca global por título, artista e álbum;
+* ordenação por diferentes campos nas abas;
+* responsivo em mobile.
+
+---
+
 # FASE 4 — Player
 
 ## T040 — Criar player básico

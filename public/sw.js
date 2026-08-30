@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drivetune-v2';
+const CACHE_NAME = 'drivetune-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -32,16 +32,28 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
+
   if (url.includes('googleapis.com') || url.includes('accounts.google.com') || url.includes('gstatic.com')) {
     return;
   }
 
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
-      }
-      return fetch(event.request);
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

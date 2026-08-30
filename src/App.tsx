@@ -1,10 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { LoginButton } from './auth';
 import type { GoogleUser } from './auth';
 import { FolderTree, MainPanel, listFolderContents, listRootFolderContents, listMp3Files } from './drive';
 import type { DriveFile, DriveFolder } from './drive';
 import { AudioPlayer, TrackInfoPanel } from './player';
+import { AllArtists, AllAlbums, TracksView, Search, indexFolder } from './library';
+import { exportData, importData } from './library/backup';
 import './App.css';
+
+type Tab = 'pastas' | 'artistas' | 'albuns' | 'musicas' | 'busca';
 
 function App() {
   const [user, setUser] = useState<GoogleUser | null>(null);
@@ -17,6 +21,8 @@ function App() {
   const [currentFileIndex, setCurrentFileIndex] = useState<number | null>(null);
   const [playerFiles, setPlayerFiles] = useState<DriveFile[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('pastas');
+  const importRef = useRef<HTMLInputElement>(null);
 
   const handleAuthChange = useCallback((newUser: GoogleUser | null) => {
     setUser(newUser);
@@ -42,6 +48,13 @@ function App() {
         : await listFolderContents(folderId);
       setFolders(content.folders);
       setFiles(content.files);
+
+      if (content.files.length > 0) {
+        const effectiveId = folderId === '__drive_root__' ? 'root' : folderId;
+        indexFolder(content.files, effectiveId).catch(err =>
+          console.error('Erro ao indexar pasta:', err)
+        );
+      }
     } catch (err) {
       setError('Erro ao carregar conteúdo da pasta');
       console.error(err);
@@ -82,6 +95,36 @@ function App() {
     }
   }, []);
 
+  const handleTabSelect = useCallback((tab: Tab) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  }, []);
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'pastas', label: 'Pastas' },
+    { id: 'artistas', label: 'Artistas' },
+    { id: 'albuns', label: 'Álbuns' },
+    { id: 'musicas', label: 'Músicas' },
+    { id: 'busca', label: 'Busca' },
+  ];
+
+  const handleExport = () => {
+    exportData();
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const result = await importData(file);
+      alert(`Importado: ${result.imported} atualizado(s), ${result.skipped} já existente(s)`);
+      window.location.reload();
+    } catch {
+      alert('Erro ao importar arquivo');
+    }
+    e.target.value = '';
+  };
+
   return (
     <div className="app">
       <header className="app-header">
@@ -98,7 +141,24 @@ function App() {
           <h1>DriveTune</h1>
         </div>
         <div className="user-info">
-          {user && <LoginButton onAuthChange={handleAuthChange} />}
+          {user && (
+            <>
+              <button className="header-action-btn" onClick={handleExport} title="Exportar dados">
+                ↓<span className="header-action-btn-label"> Exportar</span>
+              </button>
+              <button className="header-action-btn" onClick={() => importRef.current?.click()} title="Importar dados">
+                ↑<span className="header-action-btn-label"> Importar</span>
+              </button>
+              <input
+                ref={importRef}
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                style={{ display: 'none' }}
+              />
+              <LoginButton onAuthChange={handleAuthChange} />
+            </>
+          )}
         </div>
       </header>
 
@@ -111,34 +171,85 @@ function App() {
           </section>
         ) : (
           <section className="logged-section">
-            <div className={`split-view ${sidebarOpen ? 'sidebar-open' : ''}`}>
-              {user && (
-                <div
-                  className="sidebar-overlay"
-                  onClick={() => setSidebarOpen(false)}
-                />
-              )}
-              <div className="left-panel">
-                <FolderTree
-                  selectedFolderId={selectedFolderId}
-                  onFolderSelect={handleFolderSelect}
-                  onPlayFolder={handlePlayFolder}
-                />
-              </div>
+            <nav className="tab-nav">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => handleTabSelect(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
 
-              <div className="right-panel">
-                <MainPanel
-                  folders={folders}
-                  files={files}
-                  folderName={folderName}
-                  isLoading={isLoading}
-                  error={error}
-                  onFolderClick={handleFolderSelect}
-                  onPlayFolder={handlePlayFolder}
-                  onFileSelected={handleFileSelected}
-                  onPlayAll={handlePlayAll}
-                />
-              </div>
+            <div className="tab-content">
+              {activeTab === 'pastas' && (
+                <div className={`split-view ${sidebarOpen ? 'sidebar-open' : ''}`}>
+                  {user && (
+                    <div
+                      className="sidebar-overlay"
+                      onClick={() => setSidebarOpen(false)}
+                    />
+                  )}
+                  <div className="left-panel">
+                    <FolderTree
+                      selectedFolderId={selectedFolderId}
+                      onFolderSelect={handleFolderSelect}
+                      onPlayFolder={handlePlayFolder}
+                    />
+                  </div>
+
+                  <div className="right-panel">
+                    <MainPanel
+                      folders={folders}
+                      files={files}
+                      folderName={folderName}
+                      isLoading={isLoading}
+                      error={error}
+                      onFolderClick={handleFolderSelect}
+                      onPlayFolder={handlePlayFolder}
+                      onFileSelected={handleFileSelected}
+                      onPlayAll={handlePlayAll}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'artistas' && (
+                <div className="tab-panel">
+                  <AllArtists onTrackSelect={handleFileSelected} />
+                </div>
+              )}
+
+              {activeTab === 'albuns' && (
+                <div className="tab-panel">
+                  <AllAlbums onTrackSelect={handleFileSelected} />
+                </div>
+              )}
+
+              {activeTab === 'musicas' && (
+                <div className="tab-panel">
+                  <TracksView onTrackSelect={handleFileSelected} />
+                </div>
+              )}
+
+              {activeTab === 'busca' && (
+                <div className="tab-panel">
+                  <Search
+                    folderId={selectedFolderId || ''}
+                    files={files}
+                    onTrackSelect={(track) => {
+                      const driveFile: DriveFile = {
+                        id: track.driveFileId,
+                        name: track.name,
+                        mimeType: 'audio/mpeg',
+                      };
+                      handleFileSelected(driveFile, [driveFile]);
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {currentFileIndex !== null && playerFiles.length > 0 && (

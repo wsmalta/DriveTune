@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   initializeGoogleAuth,
   signIn,
@@ -14,19 +14,21 @@ interface LoginButtonProps {
 export function LoginButton({ onAuthChange }: LoginButtonProps) {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    // Verificar se há usuário salvo
     const storedUser = getStoredUser();
     setUser(storedUser);
     onAuthChange(storedUser);
     setLoading(false);
 
-    // Inicializar Google Auth
-    initializeGoogleAuth((newUser) => {
-      setUser(newUser);
-      onAuthChange(newUser);
-    });
+    if (!initialized.current) {
+      initialized.current = true;
+      initializeGoogleAuth((newUser) => {
+        setUser(newUser);
+        onAuthChange(newUser);
+      });
+    }
   }, [onAuthChange]);
 
   const handleSignIn = () => {

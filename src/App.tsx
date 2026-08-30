@@ -18,7 +18,7 @@ function App() {
   const [playerFiles, setPlayerFiles] = useState<DriveFile[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleAuthChange = (newUser: GoogleUser | null) => {
+  const handleAuthChange = useCallback((newUser: GoogleUser | null) => {
     setUser(newUser);
     if (!newUser) {
       setSelectedFolderId(null);
@@ -28,7 +28,7 @@ function App() {
       setCurrentFileIndex(null);
       setPlayerFiles([]);
     }
-  };
+  }, []);
 
   const loadFolderContent = useCallback(async (folderId: string, name: string) => {
     try {

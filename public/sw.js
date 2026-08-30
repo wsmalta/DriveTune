@@ -1,4 +1,4 @@
-const CACHE_NAME = 'drivetune-v1';
+const CACHE_NAME = 'drivetune-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -31,8 +31,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Não cachear requisições à API do Google
-  if (event.request.url.includes('googleapis.com')) {
+  const url = event.request.url;
+  if (url.includes('googleapis.com') || url.includes('accounts.google.com') || url.includes('gstatic.com')) {
     return;
   }
 

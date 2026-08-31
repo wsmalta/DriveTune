@@ -57,6 +57,19 @@ export interface PlaybackState {
   updatedAt: Date;
 }
 
+export interface HistoryEntry {
+  id?: number;
+  trackId: number;
+  playedAt: Date;
+  duration?: number;
+}
+
+export interface EQSettings {
+  id?: number;
+  enabled: boolean;
+  bands: { frequency: number; gain: number; Q: number; label: string }[];
+}
+
 class DriveTuneDB extends Dexie {
   tracks!: Table<Track>;
   albums!: Table<Album>;
@@ -65,6 +78,8 @@ class DriveTuneDB extends Dexie {
   playlistItems!: Table<PlaylistItem>;
   favorites!: Table<Favorite>;
   playbackState!: Table<PlaybackState>;
+  history!: Table<HistoryEntry>;
+  eqSettings!: Table<EQSettings>;
 
   constructor() {
     super('DriveTuneDB');
@@ -82,6 +97,12 @@ class DriveTuneDB extends Dexie {
     });
     this.version(3).stores({
       tracks: '++id, driveFileId, folderId, artist, album, genre, year',
+    });
+    this.version(4).stores({
+      history: '++id, trackId, playedAt',
+    });
+    this.version(5).stores({
+      eqSettings: '++id',
     });
   }
 }

@@ -3,12 +3,13 @@ import { LoginButton } from './auth';
 import type { GoogleUser } from './auth';
 import { FolderTree, MainPanel, listFolderContents, listRootFolderContents, listMp3Files } from './drive';
 import type { DriveFile, DriveFolder } from './drive';
-import { AudioPlayer, TrackInfoPanel } from './player';
-import { AllArtists, AllAlbums, TracksView, Search, indexFolder } from './library';
+import { AudioPlayer, DisplayPanel } from './player';
+import type { AudioPlayerHandle } from './player';
+import { AllArtists, AllAlbums, TracksView, Search, indexFolder, HistoryView } from './library';
 import { exportData, importData } from './library/backup';
 import './App.css';
 
-type Tab = 'pastas' | 'artistas' | 'albuns' | 'musicas' | 'busca';
+type Tab = 'pastas' | 'artistas' | 'albuns' | 'musicas' | 'busca' | 'historico';
 
 function App() {
   const [user, setUser] = useState<GoogleUser | null>(null);
@@ -23,6 +24,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('pastas');
   const importRef = useRef<HTMLInputElement>(null);
+  const playerRef = useRef<AudioPlayerHandle>(null);
 
   const handleAuthChange = useCallback((newUser: GoogleUser | null) => {
     setUser(newUser);
@@ -106,6 +108,7 @@ function App() {
     { id: 'albuns', label: 'Álbuns' },
     { id: 'musicas', label: 'Músicas' },
     { id: 'busca', label: 'Busca' },
+    { id: 'historico', label: 'Histórico' },
   ];
 
   const handleExport = () => {
@@ -250,13 +253,23 @@ function App() {
                   />
                 </div>
               )}
+
+              {activeTab === 'historico' && (
+                <div className="tab-panel">
+                  <HistoryView onTrackSelect={handleFileSelected} />
+                </div>
+              )}
             </div>
 
             {currentFileIndex !== null && playerFiles.length > 0 && (
               <div className="player-section">
                 <div className="player-layout">
-                  <TrackInfoPanel file={playerFiles[currentFileIndex]} />
+                  <DisplayPanel
+                    file={playerFiles[currentFileIndex]}
+                    analyser={playerRef.current?.analyser ?? null}
+                  />
                   <AudioPlayer
+                    ref={playerRef}
                     files={playerFiles}
                     initialIndex={currentFileIndex}
                   />

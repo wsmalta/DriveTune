@@ -8,3 +8,5 @@ export { AllAlbums } from './AllAlbums';
 export { RenameInput } from './RenameInput';
 export { TrackEditModal } from './TrackEditModal';
 export { indexFolder } from './indexer';
+export { recordPlayback, getRecentHistory, clearHistory } from './history';
+export { HistoryView } from './HistoryView';

@@ -1,9 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { getAudioUrl } from '../drive';
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { getAudioUrl, extractMetadata } from '../drive';
 import { getAccessToken } from '../auth';
+import { db } from '../db';
+import { recordPlayback } from '../library';
+import { savePlaybackState, loadPlaybackState } from './playbackState';
+import { Equalizer } from './Equalizer';
 import type { DriveFile } from '../drive';
 
 type RepeatMode = 'none' | 'all' | 'one';
+
+const EQ_FREQUENCIES = [60, 230, 910, 3600, 14000];
+const EQ_Q = [1.2, 1.0, 1.0, 1.0, 0.7];
 
 interface AudioPlayerProps {
   files: DriveFile[];
@@ -11,8 +18,24 @@ interface AudioPlayerProps {
   onEnded?: () => void;
 }
 
-export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerProps) {
+export interface AudioPlayerHandle {
+  audioElement: HTMLAudioElement | null;
+  analyser: AnalyserNode | null;
+}
+
+export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
+  function AudioPlayer({ files, initialIndex = 0, onEnded }, ref) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const filtersRef = useRef<BiquadFilterNode[]>([]);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    get audioElement() { return audioRef.current; },
+    get analyser() { return analyserRef.current; },
+  }), []);
+
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -23,6 +46,8 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
   const [shuffle, setShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('none');
   const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
+  const [eqEnabled, setEqEnabled] = useState(false);
+  const [showEq, setShowEq] = useState(false);
   const prevFilesRef = useRef(files);
 
   useEffect(() => {
@@ -56,8 +81,37 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
     }
   }, [shuffle, generateShuffledIndices]);
 
+  // Salvar estado de reprodução quando mudar
+  useEffect(() => {
+    if (files.length > 0 && currentIndex >= 0) {
+      const track = files[currentIndex];
+      if (track) {
+        db.tracks.where('driveFileId').equals(track.id).first().then(dbTrack => {
+          if (dbTrack?.id) {
+            // Buscar IDs do banco para todos os arquivos na fila
+            const fileIds = files.map(f => f.id);
+            db.tracks.where('driveFileId').anyOf(fileIds).toArray().then(dbTracks => {
+              const queueIds = dbTracks.map(t => t.id).filter((id): id is number => id !== undefined);
+              savePlaybackState({
+                currentTrackId: dbTrack.id,
+                position: currentTime,
+                queue: queueIds,
+                currentIndex,
+              });
+            });
+          }
+        });
+      }
+    }
+  }, [currentIndex, currentTime, files]);
+
   const loadAndPlay = useCallback(async (file: DriveFile) => {
     if (!audioRef.current) return;
+
+    // Retomar AudioContext se suspenso (requer interação do usuário)
+    if (audioCtxRef.current?.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
 
     const url = getAudioUrl(file.id);
     
@@ -99,11 +153,78 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
     const audio = new Audio();
     audioRef.current = audio;
 
+    // Criar pipeline de áudio compartilhado
+    try {
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+
+      const source = audioCtx.createMediaElementSource(audio);
+      sourceRef.current = source;
+
+      const filters: BiquadFilterNode[] = [];
+      let prevNode: AudioNode = source;
+
+      EQ_FREQUENCIES.forEach((freq, i) => {
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'peaking';
+        filter.frequency.value = freq;
+        filter.Q.value = EQ_Q[i];
+        filter.gain.value = 0;
+        prevNode.connect(filter);
+        prevNode = filter;
+        filters.push(filter);
+      });
+      filtersRef.current = filters;
+
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      prevNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      analyserRef.current = analyser;
+
+      // Restaurar EQ salvo
+      db.eqSettings.toCollection().first().then(saved => {
+        if (saved) {
+          setEqEnabled(saved.enabled);
+          filters.forEach((f, i) => {
+            f.gain.value = saved.enabled && saved.bands[i] ? saved.bands[i].gain : 0;
+          });
+        }
+      }).catch(() => {});
+    } catch {
+      // AudioContext não suportado
+    }
+
+    // Restaurar estado de reprodução
+    loadPlaybackState().then(savedState => {
+      if (savedState && files.length > 0) {
+        // Buscar a track pelo ID salvo
+        db.tracks.get(savedState.currentTrackId).then(savedTrack => {
+          if (savedTrack) {
+            // Encontrar o arquivo correspondente na fila atual
+            const trackIndex = files.findIndex(f => f.id === savedTrack.driveFileId);
+            if (trackIndex >= 0) {
+              setCurrentIndex(trackIndex);
+              // A posição será restaurada quando o áudio carregar
+            }
+          }
+        });
+      }
+    });
+
     // Event listeners
     audio.addEventListener('play', () => setIsPlaying(true));
     audio.addEventListener('pause', () => setIsPlaying(false));
     audio.addEventListener('timeupdate', () => setCurrentTime(audio.currentTime));
-    audio.addEventListener('loadedmetadata', () => setDuration(audio.duration));
+    audio.addEventListener('loadedmetadata', () => {
+      setDuration(audio.duration);
+      // Restaurar posição após carregar metadados
+      loadPlaybackState().then(savedState => {
+        if (savedState && audio.duration > 0) {
+          audio.currentTime = Math.min(savedState.position, audio.duration);
+        }
+      });
+    });
     audio.addEventListener('ended', () => {
       setIsPlaying(false);
       
@@ -137,6 +258,26 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         handleNext();
       });
+
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime != null && audio) {
+          audio.currentTime = details.seekTime;
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        const skipTime = details.seekOffset || 10;
+        if (audio) {
+          audio.currentTime = Math.max(audio.currentTime - skipTime, 0);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        const skipTime = details.seekOffset || 10;
+        if (audio) {
+          audio.currentTime = Math.min(audio.currentTime + skipTime, audio.duration || 0);
+        }
+      });
     }
 
     return () => {
@@ -144,6 +285,10 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
       if (audio.src) {
         URL.revokeObjectURL(audio.src);
       }
+      sourceRef.current?.disconnect();
+      filtersRef.current.forEach(f => f.disconnect());
+      analyserRef.current?.disconnect();
+      audioCtxRef.current?.close();
     };
   }, [currentIndex, files.length, onEnded, repeatMode]);
 
@@ -153,12 +298,38 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
     if (currentFile) {
       loadAndPlay(currentFile);
       
-      // Atualizar Media Session
+      // Registrar no histórico
+      db.tracks.where('driveFileId').equals(currentFile.id).first().then(dbTrack => {
+        if (dbTrack?.id) {
+          recordPlayback(dbTrack.id).catch(err => 
+            console.error('Erro ao registrar histórico:', err)
+          );
+        }
+      });
+      
+      // Atualizar Media Session com metadados reais
       if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: currentFile.name,
-          artist: 'DriveTune',
-          album: 'Google Drive',
+        const meta = extractMetadata(currentFile.name);
+        
+        // Buscar capa do álbum no IndexedDB
+        db.tracks.where('driveFileId').equals(currentFile.id).first().then(dbTrack => {
+          const artwork: MediaImage[] = [];
+          if (dbTrack?.coverUrl) {
+            artwork.push({ src: dbTrack.coverUrl, sizes: '512x512', type: 'image/jpeg' });
+          }
+          
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: meta.title || currentFile.name,
+            artist: meta.artist || 'Desconhecido',
+            album: meta.album || 'DriveTune',
+            artwork,
+          });
+        }).catch(() => {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: meta.title || currentFile.name,
+            artist: meta.artist || 'Desconhecido',
+            album: meta.album || 'DriveTune',
+          });
         });
       }
     }
@@ -300,7 +471,22 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
         >
           {repeatMode === 'one' ? '🔂' : '🔁'}
         </button>
+        <button 
+          onClick={() => setShowEq(!showEq)}
+          className={eqEnabled ? 'active' : ''}
+          title="Equalizer"
+        >
+          🎛️
+        </button>
       </div>
+
+      {showEq && filtersRef.current.length > 0 && (
+        <Equalizer
+          filters={filtersRef.current}
+          onToggle={setEqEnabled}
+          isEnabled={eqEnabled}
+        />
+      )}
 
       <div className="player-progress">
         <span>{formatTime(currentTime)}</span>
@@ -329,4 +515,4 @@ export function AudioPlayer({ files, initialIndex = 0, onEnded }: AudioPlayerPro
       </div>
     </div>
   );
-}
+});

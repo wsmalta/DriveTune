@@ -7,4 +7,6 @@ export type {
   PlaylistItem,
   Favorite,
   PlaybackState,
+  HistoryEntry,
+  EQSettings,
 } from './database';

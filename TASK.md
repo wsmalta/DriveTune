@@ -181,7 +181,7 @@ Avançar automaticamente para a próxima faixa.
 
 ## T001 — Inicializar projeto
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -199,7 +199,7 @@ Criar estrutura do projeto com React + Vite + TypeScript.
 
 ## T002 — Registrar stack em ARCHITECTURE.md
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -214,7 +214,7 @@ Confirmar decisões técnicas no documento de arquitetura.
 
 ## T003 — Configurar PWA
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -232,7 +232,7 @@ Transformar a aplicação em PWA básica.
 
 ## T004 — Configurar Dexie.js
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -248,7 +248,7 @@ Preparar IndexedDB para persistência local.
 
 ## T005 — Configurar Google Identity Services
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -602,7 +602,7 @@ Implementar modos de repetição.
 
 ## T050 — Media Session API
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -622,7 +622,7 @@ Quando suportado:
 
 ## T051 — Testar reprodução em segundo plano
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -637,6 +637,12 @@ Validar a reprodução com:
 * documentar comportamento em Android/Chrome;
 * documentar comportamento em iOS/Safari;
 * identificar limitações.
+
+### Notas
+
+* Documentação completa em `docs/BACKGROUND_PLAYBACK.md`;
+* Media Session API implementada com metadados reais e capa do álbum;
+* Suporte a seekto, seekbackward e seekforward;
 
 ---
 
@@ -743,7 +749,7 @@ Apresentar músicas favoritas.
 
 ## T080 — Registrar reprodução
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -754,11 +760,17 @@ Registrar músicas reproduzidas.
 * ao tocar uma música, registro é criado;
 * dados: música, data/hora.
 
+### Notas
+
+* Implementado em `src/library/history.ts`;
+* Tabela `history` adicionada ao banco de dados (versão 4);
+* Registro automático ao iniciar reprodução;
+
 ---
 
 ## T081 — Listar histórico
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -770,13 +782,20 @@ Apresentar reproduções recentes.
 * lista ordenada por data;
 * reproduzir a partir da lista.
 
+### Notas
+
+* Implementado em `src/library/HistoryView.tsx`;
+* Aba "Histórico" adicionada à navegação;
+* Exibe até 100 reproduções recentes;
+* Opção para limpar histórico;
+
 ---
 
 # FASE 9 — Retomar reprodução
 
 ## T090 — Salvar estado do player
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -790,11 +809,17 @@ Persistir estado de reprodução.
   * fila;
   * currentIndex.
 
+### Notas
+
+* Implementado em `src/player/playbackState.ts`;
+* Salva automaticamente ao alterar estado;
+* Usa tabela `playbackState` do IndexedDB;
+
 ---
 
 ## T091 — Restaurar estado
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 
@@ -806,13 +831,19 @@ Restaurar estado de reprodução anterior.
 * música continua de onde parou;
 * fila é restaurada.
 
+### Notas
+
+* Implementado em `src/player/playbackState.ts`;
+* Restaura automaticamente ao carregar;
+* Inclui posição, fila e índice atual;
+
 ---
 
 # FASE 10 — Qualidade
 
 ## T100 — Testes automatizados
 
-Status: `[ ]`
+Status: `[x]`
 
 ### Objetivo
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { LoginButton } from './auth';
 import type { GoogleUser } from './auth';
 import { FolderTree, MainPanel, listFolderContents, listRootFolderContents, listMp3Files } from './drive';
@@ -25,6 +25,20 @@ function App() {
   const [activeTab, setActiveTab] = useState<Tab>('pastas');
   const importRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<AudioPlayerHandle>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+
+  useEffect(() => {
+    if (playerRef.current?.analyser && !analyser) {
+      setAnalyser(playerRef.current.analyser);
+      return;
+    }
+    const id = setInterval(() => {
+      if (playerRef.current?.analyser && !analyser) {
+        setAnalyser(playerRef.current.analyser);
+      }
+    }, 100);
+    return () => clearInterval(id);
+  }, [analyser]);
 
   const handleAuthChange = useCallback((newUser: GoogleUser | null) => {
     setUser(newUser);
@@ -266,7 +280,7 @@ function App() {
                 <div className="player-layout">
                   <DisplayPanel
                     file={playerFiles[currentFileIndex]}
-                    analyser={playerRef.current?.analyser ?? null}
+                    analyser={analyser}
                   />
                   <AudioPlayer
                     ref={playerRef}

@@ -138,4 +138,14 @@ describe('extractMetadata', () => {
       trackNumber: undefined,
     })
   })
+
+  it('parses "01 A-Ha - Take On Me.mp3" (space after track number)', () => {
+    const result = extractMetadata('01 A-Ha - Take On Me.mp3')
+    expect(result).toEqual({
+      trackNumber: 1,
+      artist: 'A-Ha',
+      title: 'Take On Me',
+      album: undefined,
+    })
+  })
 })

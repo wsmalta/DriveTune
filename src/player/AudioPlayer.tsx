@@ -49,6 +49,20 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
   const [eqEnabled, setEqEnabled] = useState(false);
   const [showEq, setShowEq] = useState(false);
   const prevFilesRef = useRef(files);
+  const onEndedRef = useRef(onEnded);
+  const repeatModeRef = useRef(repeatMode);
+  const userSelectedRef = useRef(initialIndex != null);
+  const shuffleRef = useRef(shuffle);
+  const shuffledIndicesRef = useRef(shuffledIndices);
+  const filesLengthRef = useRef(files.length);
+  const handleNextRef = useRef<() => void>(() => {});
+  const handlePreviousRef = useRef<() => void>(() => {});
+
+  useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
+  useEffect(() => { repeatModeRef.current = repeatMode; }, [repeatMode]);
+  useEffect(() => { shuffleRef.current = shuffle; }, [shuffle]);
+  useEffect(() => { shuffledIndicesRef.current = shuffledIndices; }, [shuffledIndices]);
+  useEffect(() => { filesLengthRef.current = files.length; }, [files.length]);
 
   useEffect(() => {
     if (prevFilesRef.current !== files) {
@@ -59,9 +73,19 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
         setCurrentTime(0);
         setDuration(0);
         setIsPlaying(false);
+        userSelectedRef.current = true;
       }
     }
   }, [files, initialIndex]);
+
+  useEffect(() => {
+    if (files.length > 0 && initialIndex != null && initialIndex < files.length && initialIndex !== currentIndex) {
+      setCurrentIndex(initialIndex);
+      setCurrentTime(0);
+      setDuration(0);
+      userSelectedRef.current = true;
+    }
+  }, [initialIndex, files.length]);
 
   const currentFile = files[currentIndex];
 
@@ -195,22 +219,22 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
       // AudioContext não suportado
     }
 
-    // Restaurar estado de reprodução
-    loadPlaybackState().then(savedState => {
-      if (savedState && files.length > 0) {
-        // Buscar a track pelo ID salvo
-        db.tracks.get(savedState.currentTrackId).then(savedTrack => {
-          if (savedTrack) {
-            // Encontrar o arquivo correspondente na fila atual
-            const trackIndex = files.findIndex(f => f.id === savedTrack.driveFileId);
-            if (trackIndex >= 0) {
-              setCurrentIndex(trackIndex);
-              // A posição será restaurada quando o áudio carregar
+    // Restaurar estado de reprodução (apenas no mount inicial)
+    if (!audioCtxRef.current?._stateRestored) {
+      audioCtxRef.current._stateRestored = true;
+      loadPlaybackState().then(savedState => {
+        if (savedState && files.length > 0 && !userSelectedRef.current) {
+          db.tracks.get(savedState.currentTrackId).then(savedTrack => {
+            if (savedTrack) {
+              const trackIndex = files.findIndex(f => f.id === savedTrack.driveFileId);
+              if (trackIndex >= 0) {
+                setCurrentIndex(trackIndex);
+              }
             }
-          }
-        });
-      }
-    });
+          });
+        }
+      });
+    }
 
     // Event listeners
     audio.addEventListener('play', () => setIsPlaying(true));
@@ -218,25 +242,24 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
     audio.addEventListener('timeupdate', () => setCurrentTime(audio.currentTime));
     audio.addEventListener('loadedmetadata', () => {
       setDuration(audio.duration);
-      // Restaurar posição após carregar metadados
-      loadPlaybackState().then(savedState => {
-        if (savedState && audio.duration > 0) {
-          audio.currentTime = Math.min(savedState.position, audio.duration);
-        }
-      });
+      if (currentFile?.mimeType?.startsWith('video/')) {
+        loadPlaybackState().then(savedState => {
+          if (savedState && audio.duration > 0) {
+            audio.currentTime = Math.min(savedState.position, audio.duration);
+          }
+        });
+      }
     });
     audio.addEventListener('ended', () => {
       setIsPlaying(false);
       
-      if (repeatMode === 'one') {
-        // Repetir a mesma música
+      if (repeatModeRef.current === 'one') {
         audio.currentTime = 0;
         audio.play();
-      } else if (repeatMode === 'all' || currentIndex < files.length - 1) {
-        // Avançar para próxima música
-        handleNext();
+      } else if (repeatModeRef.current === 'all' || currentIndex < filesLengthRef.current - 1) {
+        handleNextRef.current();
       } else {
-        onEnded?.();
+        onEndedRef.current?.();
       }
     });
     audio.addEventListener('error', () => setError('Erro na reprodução'));
@@ -252,11 +275,11 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
       });
 
       navigator.mediaSession.setActionHandler('previoustrack', () => {
-        handlePrevious();
+        handlePreviousRef.current();
       });
 
       navigator.mediaSession.setActionHandler('nexttrack', () => {
-        handleNext();
+        handleNextRef.current();
       });
 
       navigator.mediaSession.setActionHandler('seekto', (details) => {
@@ -290,7 +313,7 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
       analyserRef.current?.disconnect();
       audioCtxRef.current?.close();
     };
-  }, [currentIndex, files.length, onEnded, repeatMode]);
+  }, [currentIndex, files.length]);
 
   // Carregar nova música quando currentIndex mudar
   useEffect(() => {
@@ -352,31 +375,30 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
 
   const handlePrevious = () => {
     if (currentTime > 3) {
-      // Se já começou a tocar, voltar ao início
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
       }
     } else if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
-    } else if (repeatMode === 'all') {
-      // Ir para a última música
-      setCurrentIndex(files.length - 1);
+    } else if (repeatModeRef.current === 'all') {
+      setCurrentIndex(filesLengthRef.current - 1);
     }
   };
 
   const handleNext = () => {
-    if (shuffle && shuffledIndices.length > 0) {
-      // Encontrar próximo índice embaralhado
-      const currentShufflePos = shuffledIndices.indexOf(currentIndex);
-      const nextShufflePos = (currentShufflePos + 1) % shuffledIndices.length;
-      setCurrentIndex(shuffledIndices[nextShufflePos]);
-    } else if (currentIndex < files.length - 1) {
+    if (shuffleRef.current && shuffledIndicesRef.current.length > 0) {
+      const currentShufflePos = shuffledIndicesRef.current.indexOf(currentIndex);
+      const nextShufflePos = (currentShufflePos + 1) % shuffledIndicesRef.current.length;
+      setCurrentIndex(shuffledIndicesRef.current[nextShufflePos]);
+    } else if (currentIndex < filesLengthRef.current - 1) {
       setCurrentIndex(prev => prev + 1);
-    } else if (repeatMode === 'all') {
-      // Voltar para a primeira música
+    } else if (repeatModeRef.current === 'all') {
       setCurrentIndex(0);
     }
   };
+
+  handleNextRef.current = handleNext;
+  handlePreviousRef.current = handlePrevious;
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);

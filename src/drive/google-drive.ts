@@ -129,7 +129,7 @@ export function extractMetadata(filename: string): TrackMetadata {
   let title: string | undefined;
   let trackNumber: number | undefined;
 
-  const trackNumberMatch = nameWithoutExt.match(/^(\d{1,3})\s*[-.]\s*/);
+  const trackNumberMatch = nameWithoutExt.match(/^(\d{1,3})\s*[-.\s]\s*/);
   if (trackNumberMatch) {
     trackNumber = parseInt(trackNumberMatch[1], 10);
   }

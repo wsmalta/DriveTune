@@ -29,7 +29,7 @@ export function DisplayPanel({ file, analyser }: DisplayPanelProps) {
       title="Clique para alternar visualização (Info / Capa / VU)"
       style={{ cursor: 'pointer' }}
     >
-      <div className="display-panel-content">
+      <div className={`display-panel-content ${mode === 'album' ? 'album-mode' : ''}`}>
         {mode === 'info' && <TrackInfoPanel file={file} />}
         {mode === 'album' && <AlbumCoverPanel file={file} />}
         {mode === 'vumeter' && <VUMeter analyser={analyser} />}

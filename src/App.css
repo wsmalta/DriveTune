@@ -719,13 +719,13 @@ body {
 .player-section {
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
-  padding: 12px 16px;
+  padding: 8px 12px;
   flex-shrink: 0;
 }
 
 .player-layout {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   align-items: center;
   max-width: 1100px;
   margin: 0 auto;
@@ -771,7 +771,7 @@ body {
 
 .player-info {
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .track-name {
@@ -789,19 +789,19 @@ body {
 .player-controls {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 
 .player-controls button {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   color: var(--text);
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: all 0.2s;
 }
 
@@ -850,7 +850,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .player-volume button {
@@ -894,7 +894,7 @@ body {
 .track-info-content {
   display: flex;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .track-info-cover {
@@ -1429,7 +1429,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .tracks-view {
@@ -1962,7 +1962,14 @@ body {
 .display-panel-content {
   flex: 1;
   min-height: 0;
-  height: 120px;
+  height: 90px;
+}
+
+.display-panel-content.album-mode {
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* VU Meter */
@@ -2105,7 +2112,7 @@ body {
 .album-cover-panel {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .album-cover-image {
@@ -2114,6 +2121,13 @@ body {
   border-radius: 6px;
   object-fit: cover;
   flex-shrink: 0;
+  background: var(--bg-secondary);
+}
+
+.display-panel-content.album-mode .album-cover-image {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
 }
 
 .album-cover-placeholder {
@@ -2131,6 +2145,11 @@ body {
   .album-cover-image {
     width: 60px;
     height: 60px;
+  }
+
+  .display-panel-content.album-mode .album-cover-image {
+    width: 120px;
+    height: 120px;
   }
 
   .vu-meter-canvas {
@@ -2267,8 +2286,8 @@ body {
   }
 
   .player-controls button {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
 
   .tab-nav {

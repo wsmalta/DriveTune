@@ -4,6 +4,7 @@ import type { Album, Track } from '../db';
 import type { DriveFile } from '../drive';
 import { RenameInput } from './RenameInput';
 import { fetchAndCacheCover, removeCover } from './cover';
+import { AlbumsGridView } from '../components/AlbumsGridView';
 
 interface AllAlbumsProps {
   onTrackSelect: (track: DriveFile, allFiles: DriveFile[]) => void;
@@ -171,23 +172,26 @@ export function AllAlbums({ onTrackSelect }: AllAlbumsProps) {
     );
   }
 
+  const handleAlbumClick = (albumName: string, artistName: string) => {
+    const album = albums.find(a => a.name === albumName && a.artist === artistName);
+    if (album) {
+      setSelectedAlbum(album);
+    }
+  };
+
+  const albumsWithTracks = albums.map(album => ({
+    album: album.name,
+    artist: album.artist || 'Desconhecido',
+    tracks: [] as Track[],
+  }));
+
   return (
     <div className="library">
       <h3>Álbuns</h3>
       {albums.length === 0 ? (
         <p>Nenhum álbum indexado. Navegue por pastas para indexar.</p>
       ) : (
-        <ul className="album-list-items">
-          {albums.map((album) => (
-            <li key={album.id}>
-              <button className="album-button" onClick={() => setSelectedAlbum(album)}>
-                <span className="album-icon">💿</span>
-                <RenameInput value={album.name} onSave={(v) => handleRenameAlbum(album.name, v)} />
-                {album.artist && <span className="text-secondary"> — {album.artist}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <AlbumsGridView albums={albumsWithTracks} onAlbumClick={handleAlbumClick} />
       )}
     </div>
   );

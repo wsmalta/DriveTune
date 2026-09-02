@@ -4,6 +4,7 @@ import type { Artist, Track } from '../db';
 import type { DriveFile } from '../drive';
 import { RenameInput } from './RenameInput';
 import { fetchAndCacheCover, removeCover } from './cover';
+import { ArtistsGridView } from '../components/ArtistsGridView';
 
 interface AllArtistsProps {
   onTrackSelect: (track: DriveFile, allFiles: DriveFile[]) => void;
@@ -157,22 +158,22 @@ export function AllArtists({ onTrackSelect }: AllArtistsProps) {
     );
   }
 
+  const handleArtistClick = (artistName: string) => {
+    setSelectedArtist(artistName);
+  };
+
+  const artistsWithTracks = artists.map(artist => ({
+    artist: artist.name,
+    tracks: [] as Track[],
+  }));
+
   return (
     <div className="library">
       <h3>Artistas</h3>
       {artists.length === 0 ? (
         <p>Nenhum artista indexado. Navegue por pastas para indexar.</p>
       ) : (
-        <ul className="artist-list-items">
-          {artists.map((artist) => (
-            <li key={artist.id}>
-              <button className="artist-button" onClick={() => setSelectedArtist(artist.name)}>
-                <span className="artist-icon">🎤</span>
-                <RenameInput value={artist.name} onSave={(v) => handleRenameArtist(artist.name, v)} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <ArtistsGridView artists={artistsWithTracks} onArtistClick={handleArtistClick} />
       )}
     </div>
   );

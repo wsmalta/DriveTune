@@ -959,3 +959,92 @@ e deverá registrar o motivo abaixo da tarefa.
 Não marcar uma tarefa como `[x]` apenas porque o código foi escrito.
 
 Uma tarefa somente está concluída depois que seus critérios de aceitação forem verificados.
+
+---
+
+# FASE 11 — Remodelação da Interface (Pulsar Style)
+
+## T110 — Bottom Navigation Bar
+
+Status: `[x]`
+
+### Objetivo
+
+Criar barra de navegação inferior fixa para mobile.
+
+### Critérios de aceitação
+
+* barra fixa no rodapé;
+* ícones e labels para cada aba;
+* destaque na aba ativa;
+* responsiva.
+
+---
+
+## T111 — Mini Player
+
+Status: `[x]`
+
+### Objetivo
+
+Criar player compacto no rodapé.
+
+### Critérios de aceitação
+
+* capa do álbum;
+* nome da música e artista;
+* controles play/pause, anterior, próximo;
+* barra de progresso;
+* clique abre player full screen.
+
+---
+
+## T112 — Full Screen Player
+
+Status: `[x]`
+
+### Objetivo
+
+Tela dedicada com controles completos.
+
+### Critérios de aceitação
+
+* imagem do álbum grande;
+* nome da música, artista, álbum;
+* controles completos;
+* barra de progresso com tempo;
+* botão voltar.
+
+---
+
+## T113 — Grid de Álbuns
+
+Status: `[x]`
+
+### Objetivo
+
+Visualização em grid 3 colunas para álbuns.
+
+### Critérios de aceitação
+
+* grid responsivo;
+* capa do álbum;
+* nome, artista, número de músicas;
+* clique seleciona álbum.
+
+---
+
+## T114 — Grid de Artistas
+
+Status: `[x]`
+
+### Objetivo
+
+Visualização em grid 3 colunas para artistas.
+
+### Critérios de aceitação
+
+* grid responsivo;
+* imagem do artista;
+* nome e número de músicas;
+* clique seleciona artista.

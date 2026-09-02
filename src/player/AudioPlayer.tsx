@@ -30,6 +30,7 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
   const filtersRef = useRef<BiquadFilterNode[]>([]);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const stateRestoredRef = useRef(false);
 
   useImperativeHandle(ref, () => ({
     get audioElement() { return audioRef.current; },
@@ -220,8 +221,8 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, AudioPlayerProps>(
     }
 
     // Restaurar estado de reprodução (apenas no mount inicial)
-    if (!audioCtxRef.current?._stateRestored) {
-      audioCtxRef.current._stateRestored = true;
+    if (!stateRestoredRef.current) {
+      stateRestoredRef.current = true;
       loadPlaybackState().then(savedState => {
         if (savedState && files.length > 0 && !userSelectedRef.current) {
           db.tracks.get(savedState.currentTrackId).then(savedTrack => {

@@ -7,9 +7,12 @@ import { AudioPlayer, DisplayPanel } from './player';
 import type { AudioPlayerHandle } from './player';
 import { AllArtists, AllAlbums, TracksView, Search, indexFolder, HistoryView } from './library';
 import { exportData, importData } from './library/backup';
+import { BottomNav } from './components/BottomNav';
+import { MiniPlayer } from './components/MiniPlayer';
+import { FullScreenPlayer } from './components/FullScreenPlayer';
 import './App.css';
 
-type Tab = 'pastas' | 'artistas' | 'albuns' | 'musicas' | 'busca' | 'historico';
+export type Tab = 'pastas' | 'artistas' | 'albuns' | 'musicas' | 'busca' | 'historico';
 
 function App() {
   const [user, setUser] = useState<GoogleUser | null>(null);
@@ -26,6 +29,10 @@ function App() {
   const importRef = useRef<HTMLInputElement>(null);
   const playerRef = useRef<AudioPlayerHandle>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showFullScreenPlayer, setShowFullScreenPlayer] = useState(false);
 
   useEffect(() => {
     if (playerRef.current?.analyser && !analyser) {
@@ -39,6 +46,28 @@ function App() {
     }, 100);
     return () => clearInterval(id);
   }, [analyser]);
+
+  useEffect(() => {
+    const audio = playerRef.current?.audioElement;
+    if (!audio) return;
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration);
+
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [playerRef.current?.audioElement]);
 
   const handleAuthChange = useCallback((newUser: GoogleUser | null) => {
     setUser(newUser);
@@ -114,6 +143,36 @@ function App() {
   const handleTabSelect = useCallback((tab: Tab) => {
     setActiveTab(tab);
     setSidebarOpen(false);
+  }, []);
+
+  const handlePlayPause = useCallback(() => {
+    const audio = playerRef.current?.audioElement;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play();
+    } else {
+      audio.pause();
+    }
+  }, []);
+
+  const handleNext = useCallback(() => {
+    if (currentFileIndex !== null && currentFileIndex < playerFiles.length - 1) {
+      setCurrentFileIndex(currentFileIndex + 1);
+    }
+  }, [currentFileIndex, playerFiles.length]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentFileIndex !== null && currentFileIndex > 0) {
+      setCurrentFileIndex(currentFileIndex - 1);
+    }
+  }, [currentFileIndex]);
+
+  const handleOpenFullScreen = useCallback(() => {
+    setShowFullScreenPlayer(true);
+  }, []);
+
+  const handleCloseFullScreen = useCallback(() => {
+    setShowFullScreenPlayer(false);
   }, []);
 
   const tabs: { id: Tab; label: string }[] = [
@@ -293,6 +352,38 @@ function App() {
           </section>
         )}
       </main>
+
+      {user && currentFileIndex !== null && playerFiles.length > 0 && (
+        <MiniPlayer
+          file={playerFiles[currentFileIndex]}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+          onPlayPause={handlePlayPause}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onOpenFullScreen={handleOpenFullScreen}
+        />
+      )}
+
+      {user && (
+        <BottomNav activeTab={activeTab} onTabSelect={handleTabSelect} />
+      )}
+
+      {showFullScreenPlayer && currentFileIndex !== null && playerFiles.length > 0 && (
+        <div className="full-screen-player">
+          <FullScreenPlayer
+            file={playerFiles[currentFileIndex]}
+            isPlaying={isPlaying}
+            currentTime={currentTime}
+            duration={duration}
+            onPlayPause={handlePlayPause}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+            onClose={handleCloseFullScreen}
+          />
+        </div>
+      )}
     </div>
   );
 }

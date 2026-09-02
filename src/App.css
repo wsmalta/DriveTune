@@ -2900,10 +2900,6 @@ body {
   padding-bottom: 120px;
 }
 
-.player-section-hidden {
-  display: none;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .bottom-nav {
@@ -2916,6 +2912,10 @@ body {
 
   .full-screen-player {
     display: flex;
+  }
+
+  .player-section {
+    display: none;
   }
 }
 
@@ -2930,6 +2930,10 @@ body {
 
   .full-screen-player {
     display: none;
+  }
+
+  .player-section {
+    display: block;
   }
 }
 

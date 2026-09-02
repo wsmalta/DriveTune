@@ -18,9 +18,12 @@ export function TracksView({ onTrackSelect }: TracksViewProps) {
   const [editingTrack, setEditingTrack] = useState<Track | null>(null);
   const [coverProgress, setCoverProgress] = useState<CoverProgress | null>(null);
   const [coverLoading, setCoverLoading] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     loadTracks();
+    loadFavorites();
   }, []);
 
   const loadTracks = async () => {
@@ -35,8 +38,16 @@ export function TracksView({ onTrackSelect }: TracksViewProps) {
     }
   };
 
+  const loadFavorites = async () => {
+    const favorites = await db.favorites.toArray();
+    setFavoriteIds(new Set(favorites.map(f => f.trackId)));
+  };
+
   const filtered = useMemo(() => {
     let result = tracks;
+    if (showFavoritesOnly) {
+      result = result.filter(t => t.id && favoriteIds.has(t.id));
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(t =>
@@ -54,7 +65,7 @@ export function TracksView({ onTrackSelect }: TracksViewProps) {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return result;
-  }, [tracks, search, sortField, sortDir]);
+  }, [tracks, search, sortField, sortDir, showFavoritesOnly, favoriteIds]);
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -103,6 +114,23 @@ export function TracksView({ onTrackSelect }: TracksViewProps) {
     onTrackSelect(driveFile, allFiles);
   };
 
+  const toggleFavorite = async (track: Track, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!track.id) return;
+
+    if (favoriteIds.has(track.id)) {
+      await db.favorites.where('trackId').equals(track.id).delete();
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        next.delete(track.id!);
+        return next;
+      });
+    } else {
+      await db.favorites.add({ trackId: track.id, createdAt: new Date() });
+      setFavoriteIds(prev => new Set(prev).add(track.id!));
+    }
+  };
+
   if (loading) {
     return <div className="tracks-view"><p>Carregando...</p></div>;
   }
@@ -148,6 +176,21 @@ export function TracksView({ onTrackSelect }: TracksViewProps) {
         )}
       </div>
 
+      <div className="tracks-filters">
+        <button
+          className={`filter-button ${!showFavoritesOnly ? 'active' : ''}`}
+          onClick={() => setShowFavoritesOnly(false)}
+        >
+          Todas ({tracks.length})
+        </button>
+        <button
+          className={`filter-button ${showFavoritesOnly ? 'active' : ''}`}
+          onClick={() => setShowFavoritesOnly(true)}
+        >
+          ❤️ Favoritas ({favoriteIds.size})
+        </button>
+      </div>
+
       <div className="tracks-table-wrapper">
         <table className="file-table tracks-table">
           <thead>
@@ -177,6 +220,13 @@ export function TracksView({ onTrackSelect }: TracksViewProps) {
                 <td onClick={() => handleTrackClick(track)}>{track.album || '—'}</td>
                 <td onClick={() => handleTrackClick(track)}>{track.year || '—'}</td>
                 <td className="col-actions">
+                  <button
+                    className={`favorite-btn ${track.id && favoriteIds.has(track.id) ? 'active' : ''}`}
+                    title={track.id && favoriteIds.has(track.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                    onClick={(e) => toggleFavorite(track, e)}
+                  >
+                    {track.id && favoriteIds.has(track.id) ? '❤️' : '🤍'}
+                  </button>
                   <button
                     className="track-edit-btn"
                     title="Editar"

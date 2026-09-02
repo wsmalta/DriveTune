@@ -11,6 +11,7 @@ interface MiniPlayerProps {
   onPlayPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
+  onSeek: (time: number) => void;
   onOpenFullScreen: () => void;
 }
 
@@ -22,6 +23,7 @@ export function MiniPlayer({
   onPlayPause,
   onNext,
   onPrevious,
+  onSeek,
   onOpenFullScreen,
 }: MiniPlayerProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -47,9 +49,23 @@ export function MiniPlayer({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    onSeek(time);
+  };
+
   return (
     <div className="mini-player" onClick={onOpenFullScreen}>
       <div className="mini-player-progress">
+        <input
+          type="range"
+          min="0"
+          max={duration || 0}
+          value={currentTime}
+          onChange={handleSeekChange}
+          onClick={e => e.stopPropagation()}
+          className="mini-player-progress-input"
+        />
         <div className="mini-player-progress-bar" style={{ width: `${progress}%` }} />
       </div>
 

@@ -11,6 +11,7 @@ interface FullScreenPlayerProps {
   onPlayPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
+  onSeek: (time: number) => void;
   onClose: () => void;
 }
 
@@ -22,6 +23,7 @@ export function FullScreenPlayer({
   onPlayPause,
   onNext,
   onPrevious,
+  onSeek,
   onClose,
 }: FullScreenPlayerProps) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export function FullScreenPlayer({
     artist: '',
     album: '',
   });
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     if (!file) return;
@@ -58,6 +61,11 @@ export function FullScreenPlayer({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    onSeek(time);
+  };
+
   return (
     <div className="full-screen-player-content">
       <div className="full-screen-header">
@@ -66,9 +74,36 @@ export function FullScreenPlayer({
         </button>
         <div className="full-screen-header-icons">
           <button aria-label="Favorito">♡</button>
-          <button aria-label="Mais opções">⋮</button>
+          <button 
+            aria-label="Mais opções" 
+            onClick={() => setShowMenu(!showMenu)}
+            className={showMenu ? 'active' : ''}
+          >
+            ⋮
+          </button>
         </div>
       </div>
+
+      {showMenu && (
+        <div className="full-screen-menu">
+          <button className="full-screen-menu-item">
+            <span>🎛️</span>
+            <span>Equalizador</span>
+          </button>
+          <button className="full-screen-menu-item">
+            <span>ℹ️</span>
+            <span>Detalhes da faixa</span>
+          </button>
+          <button className="full-screen-menu-item">
+            <span>📋</span>
+            <span>Adicionar à playlist</span>
+          </button>
+          <button className="full-screen-menu-item">
+            <span>❤️</span>
+            <span>Favoritar</span>
+          </button>
+        </div>
+      )}
 
       <div className="full-screen-cover">
         {coverUrl ? (
@@ -85,6 +120,14 @@ export function FullScreenPlayer({
       </div>
 
       <div className="full-screen-progress">
+        <input
+          type="range"
+          min="0"
+          max={duration || 0}
+          value={currentTime}
+          onChange={handleSeekChange}
+          className="full-screen-progress-input"
+        />
         <div className="full-screen-progress-bar">
           <div className="full-screen-progress-fill" style={{ width: `${progress}%` }} />
         </div>

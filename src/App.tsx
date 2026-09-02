@@ -10,6 +10,7 @@ import { exportData, importData } from './library/backup';
 import { BottomNav } from './components/BottomNav';
 import { MiniPlayer } from './components/MiniPlayer';
 import { FullScreenPlayer } from './components/FullScreenPlayer';
+import { SideMenu } from './components/SideMenu';
 import './App.css';
 
 export type Tab = 'pastas' | 'artistas' | 'albuns' | 'musicas' | 'busca' | 'historico';
@@ -33,6 +34,7 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showFullScreenPlayer, setShowFullScreenPlayer] = useState(false);
+  const [sideMenuOpen, setSideMenuOpen] = useState(false);
 
   useEffect(() => {
     if (playerRef.current?.analyser && !analyser) {
@@ -167,6 +169,13 @@ function App() {
     }
   }, [currentFileIndex]);
 
+  const handleSeek = useCallback((time: number) => {
+    const audio = playerRef.current?.audioElement;
+    if (audio) {
+      audio.currentTime = time;
+    }
+  }, []);
+
   const handleOpenFullScreen = useCallback(() => {
     setShowFullScreenPlayer(true);
   }, []);
@@ -208,10 +217,10 @@ function App() {
           {user && (
             <button
               className="sidebar-toggle"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label="Alternar painel de pastas"
+              onClick={() => setSideMenuOpen(true)}
+              aria-label="Abrir menu"
             >
-              {sidebarOpen ? '✕' : '☰'}
+              ☰
             </button>
           )}
           <h1>DriveTune</h1>
@@ -356,6 +365,7 @@ function App() {
           onPlayPause={handlePlayPause}
           onNext={handleNext}
           onPrevious={handlePrevious}
+          onSeek={handleSeek}
           onOpenFullScreen={handleOpenFullScreen}
         />
       )}
@@ -374,10 +384,18 @@ function App() {
             onPlayPause={handlePlayPause}
             onNext={handleNext}
             onPrevious={handlePrevious}
+            onSeek={handleSeek}
             onClose={handleCloseFullScreen}
           />
         </div>
       )}
+
+      <SideMenu
+        isOpen={sideMenuOpen}
+        onClose={() => setSideMenuOpen(false)}
+        onExport={handleExport}
+        onImport={() => importRef.current?.click()}
+      />
     </div>
   );
 }

@@ -10,7 +10,7 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: 'artistas', label: 'Artistas', icon: '👤' },
   { id: 'albuns', label: 'Álbuns', icon: '💿' },
   { id: 'musicas', label: 'Músicas', icon: '🎵' },
-  { id: 'busca', label: 'Busca', icon: '🔍' },
+  { id: 'historico', label: 'Histórico', icon: '🕐' },
 ];
 
 export function BottomNav({ activeTab, onTabSelect }: BottomNavProps) {

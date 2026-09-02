@@ -3,7 +3,7 @@ import { LoginButton } from './auth';
 import type { GoogleUser } from './auth';
 import { FolderTree, MainPanel, listFolderContents, listRootFolderContents, listMp3Files } from './drive';
 import type { DriveFile, DriveFolder } from './drive';
-import { AudioPlayer, DisplayPanel } from './player';
+import { AudioPlayer } from './player';
 import type { AudioPlayerHandle } from './player';
 import { AllArtists, AllAlbums, TracksView, Search, indexFolder, HistoryView } from './library';
 import { exportData, importData } from './library/backup';
@@ -335,18 +335,12 @@ function App() {
             </div>
 
             {currentFileIndex !== null && playerFiles.length > 0 && (
-              <div className="player-section">
-                <div className="player-layout">
-                  <DisplayPanel
-                    file={playerFiles[currentFileIndex]}
-                    analyser={analyser}
-                  />
-                  <AudioPlayer
-                    ref={playerRef}
-                    files={playerFiles}
-                    initialIndex={currentFileIndex}
-                  />
-                </div>
+              <div className="player-section-hidden">
+                <AudioPlayer
+                  ref={playerRef}
+                  files={playerFiles}
+                  initialIndex={currentFileIndex}
+                />
               </div>
             )}
           </section>

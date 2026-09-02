@@ -2768,6 +2768,10 @@ body {
   padding-bottom: 120px;
 }
 
+.player-section-hidden {
+  display: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .bottom-nav {
